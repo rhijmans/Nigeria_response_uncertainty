@@ -87,9 +87,6 @@ names(rain)
 # save to disk
 writeRaster(rain, paste(getwd(),"rain","Nigeria_rain_summaries.tif", sep="/"))
 
-# resample to 30 arc seconds for merging with higher resolution soils data
-rain.30as <- resample(rain, soil)
-writeRaster(rain.30as, paste(getwd(),"rain","Nigeria_rain_summaries_30as.tif", sep="/"))
 
 
 #### soils data ####
@@ -111,9 +108,9 @@ soil.cl <- soil_af_isda("clay", path=getwd())
 # soil.ea <- crop(soil.ea, adm0)
 # soil.ea <- mask(crop(soil.ea, adm0), adm0)
 
-soil <- rast(list(soil.al, soil.tc, soil.n, soil.oc, soil.p, soil.k, soil.ph, soil.sa, soil.si, soil.cl))
-soil <- mask(crop(soil, adm0), adm0) 
-names(soil) <-  c("Al", 
+soil.30as <- rast(list(soil.al, soil.tc, soil.n, soil.oc, soil.p, soil.k, soil.ph, soil.sa, soil.si, soil.cl))
+soil.30as <- mask(crop(soil, adm0), adm0) 
+names(soil.30as) <-  c("Al", 
                   "C.tot",
                   "N.tot",
                   "OC", 
@@ -123,9 +120,19 @@ names(soil) <-  c("Al",
                   "sand", 
                   "silt", 
                   "clay")
-plot(soil)
+plot(soil.30as)
 # write copy of stack to disk
-writeRaster(soil, paste(getwd(), "soil_af_isda", "Nigeria_soil_layers.tif", sep="/"))
+writeRaster(soil.30as, paste(getwd(), "soil_af_isda", "Nigeria_soil_layers_30as.tif", sep="/"), overwrite=TRUE)
+
+#### resample to make compatible ####
+# resample to 30 arc seconds for merging with higher resolution soils data
+rain.30as <- resample(rain, soil.30as)
+writeRaster(rain.30as, paste(getwd(),"rain","Nigeria_rain_summaries_30as.tif", sep="/"), overwrite=TRUE)
+
+# resample soils to coarser res (0.05 DD), compatible with CHIRPS data 
+soil <- resample(soil.30as, rain)
+writeRaster(soil, paste(getwd(), "soil_af_isda", "Nigeria_soil_layers.tif", sep="/"), overwrite=TRUE)
+
 
 #### merge all raster layers ####
 stack <- c(soil, rain.30as)

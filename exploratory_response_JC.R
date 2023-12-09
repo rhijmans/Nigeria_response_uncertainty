@@ -27,11 +27,15 @@ plot(s, add=TRUE, pch=20, col="Red")
 # bring in raster layers for prediction
 #source("Nigeria_raster_stack.R") 
 # # or just get the output from that script:
+rain      <- rast(paste(getwd(),"rain","Nigeria_rain_summaries.tif", sep="/"))
 rain.30as <- rast(paste(getwd(),"rain","Nigeria_rain_summaries_30as.tif", sep="/"))
 soil      <- rast(paste(getwd(), "soil_af_isda", "Nigeria_soil_layers.tif", sep="/"))
+soil.30as <- rast(paste(getwd(), "soil_af_isda", "Nigeria_soil_layers_30as.tif", sep="/"))
+
+
 
 #### merge all raster layers ####
-stack <- c(soil, rain.30as)
+stack <- c(soil, rain)
 names(stack)
 
 
@@ -208,15 +212,22 @@ plist <- c(0.033, 0.035, 0.037, 0.039, 0.040, 0.042, 0.044, 0.046, 0.047, 0.049,
 # test this 
 sample(tlist, 100, replace=TRUE, prob=plist)
 
+rm(pr2)
 pr2 <- pr
-for (i in 1:10) {
+for (i in 2:300) {
   print(paste("Iteration:", i))  
   # predict using raster stack
   # note: we set the rainfall variables with random draws from last 20 years, as defined in the vectors above
   
-  rain.sum <- stack[sample(tlist, 1, replace=TRUE, prob=plist)]
+  tchoice <-  sample(tlist, 1, replace=TRUE, prob=plist)
+  cchoice <-  clist[which(tchoice==tlist)]
+  
+  print(tchoice)
+  print(cchoice)
+  
+  rain.sum <- stack[tchoice]
   names(rain.sum) <- c("rain.sum")
-  rain.cv  <- stack[sample(clist, 1, replace=TRUE, prob=plist)]
+  rain.cv  <- stack[cchoice]
   names(rain.cv) <- c("rain.cv")
   
   # replace newstack for each iteration 
@@ -237,4 +248,6 @@ pr.cv = pr.sd/pr.avg
 
 plot(c(pr.avg, pr.var))
 plot(c(pr.avg, pr.cv))
+
+writeRaster(pr2, "tmp_pr2_first10_100N_50P_15K_seed1492.tif")
 
