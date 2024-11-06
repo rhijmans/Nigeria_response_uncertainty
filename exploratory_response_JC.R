@@ -13,10 +13,28 @@ s <- vect(d, geom=c("longitude", "latitude"))
 
 
 # Nigeria code NGA
-adm0 <- gadm(country="NGA", level=0, path=getwd())
-adm1 <- gadm(country="NGA", level=1, path=getwd())
-adm2 <- gadm(country="NGA", level=2, path=getwd())
-#adm3 <- gadm(country="NGA", level=3, path=getwd())
+# IF !(FILE EXISTS) { DOWNLOAD FILE} ELSE [ OPEN FILE]
+# adm0 <- gadm(country="NGA", level=0, path=getwd())
+# adm1 <- gadm(country="NGA", level=1, path=getwd())
+# adm2 <- gadm(country="NGA", level=2, path=getwd())
+# not used: adm3 <- gadm(country="NGA", level=3, path=getwd())
+
+# this code is probably unnecessarily arcane; I just want not to re-download adm0, adm1 and adm2 if I don't need to....
+for (f in 0:2) {
+  oname <- (paste0("adm",f))
+  fname <- (paste0("gadm41_NGA_",f,"_pk.rds"))
+  print(fname)
+  if (!file.exists(paste("gadm", fname, sep="/"))) {
+    # If the file does not exist, download it
+    tmp <- gadm(country="NGA", level=0, path=getwd())
+    assign(oname,tmp)
+    } else {
+    # If the file exists, open it
+    tmp <- vect(paste0("gadm/gadm41_NGA_",f,"_pk.rds"))
+    assign(oname,tmp)
+    }
+}
+
 
 
 # map point locations
@@ -250,4 +268,81 @@ plot(c(pr.avg, pr.var))
 plot(c(pr.avg, pr.cv))
 
 writeRaster(pr2, "tmp_pr2_first10_100N_50P_15K_seed1492.tif")
+
+
+# price rasters
+npkg <- rast("C:/Github/chamb244/EiA2030-ex-ante/Nigeria_response_uncertainty/npkg.tif")
+mpkg <- rast("C:/Github/chamb244/EiA2030-ex-ante/Nigeria_response_uncertainty/mpkg.tif")
+
+# resample to lower res
+npkg <- resample(npkg, pr.avg)
+mpkg <- resample(mpkg, pr.avg)
+
+netrev <- (pr.avg * mpkg) - (100 * npkg)
+
+# predict stochastic net revenue
+# set up stack to hold predictions
+pr3 <- netrev
+for (i in 2:300) {
+  print(paste("Iteration:", i))  
+  # predict using raster stack
+  # note: we set the rainfall variables with random draws from last 20 years, as defined in the vectors above
+  
+  tchoice <-  sample(tlist, 1, replace=TRUE, prob=plist)
+  cchoice <-  clist[which(tchoice==tlist)]
+  
+  print(tchoice)
+  print(cchoice)
+  
+  rain.sum <- stack[tchoice]
+  names(rain.sum) <- c("rain.sum")
+  rain.cv  <- stack[cchoice]
+  names(rain.cv) <- c("rain.cv")
+  
+  # replace newstack for each iteration 
+  newstack <- c(stack, rain.sum, rain.cv)
+  # predict and send each prediction as new layer of output stack
+  tmp <- predict(newstack, crf, const=data.frame(N_fertilizer=100, P_fertilizer=50, K_fertilizer=15), na.rm=TRUE)
+  add(pr3) <- ((tmp * mpkg) - (100 * npkg))
+}
+
+summary(pr3)
+# calculate average and variance/standard deviation of predictions
+pr3.avg = app(pr3, fun=mean) 
+pr3.var = app(pr3, fun=var)
+names(pr3.var) <- "var"
+pr3.sd = app(pr3, fun=sd)
+pr3.cv = pr3.sd/pr3.avg
+names(pr3.cv) <- "CV"
+
+plot(c(pr3.avg, pr3.cv))
+
+
+tmp1 <- as.numeric(global(pr3.avg, "mean", na.rm=TRUE)[1])
+tmp2 <- as.numeric(global(pr3.cv, "mean", na.rm=TRUE)[1])
+
+# Classify each cell as above or below the mean for each layer
+pr3.avg.rc <- pr3.avg > tmp1
+pr3.cv.rc <- pr3.cv > tmp2
+plot(c(pr3.avg.rc, pr3.cv.rc))
+
+# Combine classifications into a single raster with four classes
+# Class definition:
+# 1 = below mean in both layers
+# 2 = above mean in r1, below mean in r2
+# 3 = below mean in r1, above mean in r2
+# 4 = above mean in both layers
+classified_raster <- pr3.avg.rc + 2 * pr3.cv.rc + 1  # Encoding the classes
+
+mylabels <- data.frame(values=1:4, label = c("Low returns, low variance", 
+                                             "High returns, low variance",
+                                             "Low returns, high variance", 
+                                             "High returns, high variance"))
+levels(classified_raster) <- mylabels
+
+# Plot the classified raster
+plot(classified_raster, main="Intervention areas, based on expected returns",
+     col=c("blue", "green", "yellow", "red"),
+     legend = TRUE, 
+     plg = list(x = "bottomright"))
 
