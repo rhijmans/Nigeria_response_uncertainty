@@ -9,6 +9,17 @@ if (this == "LAPTOP-IVSPBGCA") {
 }
 
 setwd(wd)
+
+vars <- c("Al", "C.tot", "N.tot", "OC", "P", "K", "ph.h2o", "sand", "silt", "clay")
+soil.30s <- geodata::soil_af_isda(vars, path="data/raw")
+
+template <- terra::rast(ext=c(-20, 55, -40, 40), res=0.05) 
+names(soil.30s) <- gsub("ph.h2o", "pH", names(soil.30s))
+# aggregate soils to make compatible with CHIRPS data (3 minutes)
+dir.create("data/intermediate/soil")
+rsoil <- terra::resample(soil.30s, template, filename=file.path("data/intermediate/soil", "soil_af_isda_3m.tif"), overwrite=TRUE)
+
+
 rpath <- "data/raw/chirps/"
 ipath <- "data/intermediate/chirps/"
 dir.create(rpath, FALSE, FALSE)
@@ -45,10 +56,10 @@ for (y in 1981:2023) {
 	outf <- paste0("../../intermediate/chirps/chirps_dekades_africa_", y, ".tif") 
 	if (!file.exists(outf)) {
 		fs <- grep(y, ff, value=TRUE)
-		x <- rast(fs)
-		NAflag(x) <- -9999
+		x <- terra::rast(fs)
+		terra::NAflag(x) <- -9999
 		print(outf); flush.console()
-		writeRaster(x, outf) 
+		terra::writeRaster(x, outf) 
 	}
 }
 
@@ -64,9 +75,9 @@ dir.create(dirname(outsum[1]), FALSE, FALSE)
 for (i in 1:length(ff)) {
 	if (!file.exists(outcv[i])) {
 		print(ff[i]); flush.console()
-		r <- rast(ff[i])
-		rsum <- sum(r, filename=outsum[i], overwrite=TRUE)
-		writeRaster(stdev(r) / mean(r), filename=outcv[i])
+		r <- terra::rast(ff[i])
+		rsum <- terra::sum(r, filename=outsum[i], overwrite=TRUE)
+		terra::writeRaster(terra::stdev(r) / terra::mean(r), filename=outcv[i])
 	}
 }
 
