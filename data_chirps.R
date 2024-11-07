@@ -9,12 +9,10 @@ if (this == "LAPTOP-IVSPBGCA") {
 }
 
 setwd(wd)
-
 rpath <- "data/raw/chirps/"
 ipath <- "data/intermediate/chirps/"
 dir.create(rpath, FALSE, FALSE)
 dir.create(ipath, FALSE, FALSE)
-
 setwd(rpath)
 
 url <- "https://data.chc.ucsb.edu/products/CHIRPS-2.0/africa_dekad/tifs/"
@@ -56,9 +54,21 @@ for (y in 1981:2023) {
 
 
 ff <- list.files("../../intermediate/chirps", pattern="^chirps_dekades_africa_....\\.tif$", full=TRUE)
-outf <- gsub("dekades", "sum", basename(ff))
-outf <- paste0("../../intermediate/chirps/sum/", outf)
-dir.create(dirname(outf[1]), FALSE, FALSE)
 
-for (i in 1:length(ff)) mean(rast(ff[i]), filename=outf[i])
+outf <- gsub("dekades", "dekades_sum", basename(ff))
+outsum <- paste0("../../intermediate/chirps/stats/", outf)
+outcv <- gsub("_sum", "_cv", outsum)
+
+dir.create(dirname(outsum[1]), FALSE, FALSE)
+
+for (i in 1:length(ff)) {
+	if (!file.exists(outcv[i])) {
+		print(ff[i]); flush.console()
+		r <- rast(ff[i])
+		rsum <- sum(r, filename=outsum[i], overwrite=TRUE)
+		writeRaster(stdev(r) / mean(r), filename=outcv[i])
+	}
+}
+
+
  

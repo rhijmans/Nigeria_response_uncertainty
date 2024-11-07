@@ -1,8 +1,7 @@
 
 this <- system('hostname', TRUE)
 if (this == "LAPTOP-IVSPBGCA") {
-	wd <- "C:/github/Nigeria_response_uncertainty"
-#	wd <- "G:/.shortcut-targets-by-id/1mfeEftF_LgRcxOT98CBIaBbYN4ZHkBr_/share/mz_nga"
+	wd <- "G:/.shortcut-targets-by-id/1mfeEftF_LgRcxOT98CBIaBbYN4ZHkBr_/share/maize_variability"
 } else if (this == "DESKTOP-JORDAN") {
   wd <- "C:/DATA/Nigeria/EiA"
 } else {
