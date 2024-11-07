@@ -10,40 +10,29 @@ if (this == "LAPTOP-IVSPBGCA") {
 
 setwd(wd)
 
-# price rasters
-npkg <- terra::rast("npkg.tif")
-mpkg <- terra::rast("mpkg.tif")
+# Nigeria code NGA
+adm0 <- geodata::gadm(country="NGA", level=0, path="data/raw")
+adm1 <- geodata::gadm(country="NGA", level=1, path="data/raw")
+adm2 <- geodata::gadm(country="NGA", level=2, path="data/raw")
 
-#library(leaflet)
-#library(geodata)
+# price rasters
+npkg <- terra::rast("data/intermediate/prices/npkg.tif")
+mpkg <- terra::rast("data/intermediate/prices/mpkg.tif")
+
 library(terra)
-#d <- readRDS("NGA_Jordan.rds")
-d <- read.csv("NGA_Jordan.csv")
+d <- read.csv("data/intermediate/observations/NGA_Jordan.csv")
 s <- vect(d, geom=c("longitude", "latitude"))
 
-
-# Nigeria code NGA
-adm0 <- geodata::gadm(country="NGA", level=0, path=".")
-adm1 <- geodata::gadm(country="NGA", level=1, path=".")
-adm2 <- geodata::gadm(country="NGA", level=2, path=".")
-
-# map point locations
-plot(adm1)
-points(s, pch=20, col="Red")
-  # looks like pretty good coverage
+# map point locations; looks like pretty good coverage
+# plot(adm1); points(s, pch=20, col="Red")
 
 # bring in raster layers for prediction
-#source("Nigeria_raster_stack.R") 
-# # or just get the output from that script:
-rain      <- rast(file.path("rain","Nigeria_rain_summaries.tif"))
-rain.30as <- rast(paste("rain","Nigeria_rain_summaries_30as.tif", sep="/"))
-soil      <- rast(paste("soil_af_isda", "Nigeria_soil_layers.tif", sep="/"))
-soil.30as <- rast(paste("soil_af_isda", "Nigeria_soil_layers_30as.tif", sep="/"))
+rain <- rast(file.path("rain", "Nigeria_rain_summaries.tif"))
+soil <- rast(paste("soil_af_isda", "Nigeria_soil_layers.tif", sep="/"))
 
-#### merge all raster layers ####
-stack <- c(soil, rain)
-names(stack)
-
+# combine rasters
+rdata <- c(soil, rain)
+names(rdata)
 
 #### extract raster values to point locations ####
 # # view points on raster data

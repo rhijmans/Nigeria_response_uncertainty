@@ -15,10 +15,15 @@ soil.30s <- geodata::soil_af_isda(vars, path="data/raw")
 
 template <- terra::rast(ext=c(-20, 55, -40, 40), res=0.05) 
 names(soil.30s) <- gsub("ph.h2o", "pH", names(soil.30s))
+names(soil.30s) <- gsub(".0-20cm", "", names(soil.30s))
+names(soil.30s) <- gsub(".tot....", "", names(soil.30s))
+
 # aggregate soils to make compatible with CHIRPS data (3 minutes)
 dir.create("data/intermediate/soil")
-rsoil <- terra::resample(soil.30s, template, filename=file.path("data/intermediate/soil", "soil_af_isda_3m.tif"), overwrite=TRUE)
+rsoil <- terra::resample(soil.30s, template, filename=file.path("data/intermediate/soil", "soil_af_isda_3m.tif"))
 
+
+### weather 
 
 rpath <- "data/raw/chirps/"
 ipath <- "data/intermediate/chirps/"
