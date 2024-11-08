@@ -8,20 +8,6 @@ if (this == "LAPTOP-IVSPBGCA") {
   wd <- "."
 }
 
-setwd(wd)
-
-vars <- c("Al", "C.tot", "N.tot", "OC", "P", "K", "ph.h2o", "sand", "silt", "clay")
-soil.30s <- geodata::soil_af_isda(vars, path="data/raw")
-
-template <- terra::rast(ext=c(-20, 55, -40, 40), res=0.05) 
-names(soil.30s) <- gsub("ph.h2o", "pH", names(soil.30s))
-names(soil.30s) <- gsub(".0-20cm", "", names(soil.30s))
-names(soil.30s) <- gsub(".tot....", "", names(soil.30s))
-
-# aggregate soils to make compatible with CHIRPS data (3 minutes)
-dir.create("data/intermediate/soil")
-rsoil <- terra::resample(soil.30s, template, filename=file.path("data/intermediate/soil", "soil_af_isda_3m.tif"))
-
 
 ### weather 
 
@@ -79,12 +65,46 @@ dir.create(dirname(outsum[1]), FALSE, FALSE)
 
 for (i in 1:length(ff)) {
 	if (!file.exists(outcv[i])) {
-		print(ff[i]); flush.console()
+		print(basename(ff[i])); flush.console()
 		r <- terra::rast(ff[i])
-		rsum <- terra::sum(r, filename=outsum[i], overwrite=TRUE)
-		terra::writeRaster(terra::stdev(r) / terra::mean(r), filename=outcv[i])
+		year <- gsub("chirps_dekades_africa_|.tif", "", basename(ff[i]))
+		rsum <- round(sum(r))
+		terra::writeRaster(rsum, filename=outsum[i], overwrite=TRUE, wopt=list(names=paste0("rain_", year)))
+		terra::writeRaster(terra::stdev(r) / terra::mean(r), filename=outcv[i], names=paste0("raincv_", year), overwrite=TRUE)
 	}
 }
 
 
+
+
+### soil
+
+setwd(wd)
+
+vars <- c("Al", "C.tot", "N.tot", "OC", "P", "K", "ph.h2o", "sand", "silt", "clay")
+soil.30s <- geodata::soil_af_isda(vars, path="data/raw")
+
+template <- terra::rast(ext=c(-20, 55, -40, 40), res=0.05) 
+names(soil.30s) <- gsub("ph.h2o", "pH", names(soil.30s))
+names(soil.30s) <- gsub(".0-20cm", "", names(soil.30s))
+names(soil.30s) <- gsub(".tot....", "", names(soil.30s))
+
+# aggregate soils to make compatible with CHIRPS data (3 minutes)
+dir.create("data/intermediate/soil")
+rsoil <- terra::resample(soil.30s, template, filename=file.path("data/intermediate/soil", "soil_af_isda_3m.tif"))
+
+### carob
  
+ds <- file.path(wd, "data/raw/carob_survey-cc.csv")
+### carobda <- file.path(wd, "data/raw/carob_agronomy-cc.csv")
+if (!file.exists(draw)) {
+	dir.create(dirname(draw), FALSE, TRUE)
+	url <- "https://geodata.ucdavis.edu/carob/carob_agronomy-cc.zip"
+	fzip <- file.path(wd, "data", "raw", basename(url))
+	download.file(url, fzip, mode="wb")
+	unzip(fzip, exdir=dirname(fzip))
+}
+
+x = read.csv(draw)
+
+#https://geodata.ucdavis.edu/carob/carob_agronomy-cc.zip
